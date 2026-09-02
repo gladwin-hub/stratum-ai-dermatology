@@ -583,76 +583,9 @@ The Stratum frontend provides an interactive user interface for interacting with
 * Feedback submission
 * Administrative visualization
 
-### Example Screenshots
 
-Add your screenshots to:
 
-```text
-screenshots/
-```
 
-Then include them in the README:
-
-```markdown
-## 🖼️ Application Screenshots
-
-### Prediction Interface
-
-![Prediction Interface](screenshots/prediction.png)
-
-### Admin Dashboard
-
-![Admin Dashboard](screenshots/admin_dashboard.png)
-
-### Model Evaluation
-
-![Model Evaluation](screenshots/evaluation.png)
-
-### Confusion Matrix
-
-![Confusion Matrix](screenshots/confusion_matrix.png)
-```
-
----
-
-# 📁 Project Structure
-
-A recommended repository structure is:
-
-```text
-stratum-ai-dermatology/
-│
-├── backend/
-│   ├── api/
-│   ├── models/
-│   ├── services/
-│   ├── database/
-│   └── main.py
-│
-├── frontend/
-│   ├── index.html
-│   ├── dashboard.html
-│   └── assets/
-│
-├── training/
-│   ├── train.py
-│   ├── evaluate.py
-│   └── preprocessing.py
-│
-├── screenshots/
-│   ├── prediction.png
-│   ├── admin_dashboard.png
-│   ├── evaluation.png
-│   └── confusion_matrix.png
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-
-> The actual directory structure may differ depending on the implementation.
-
----
 
 # ⚙️ Installation
 
@@ -867,33 +800,7 @@ It should not be interpreted as:
 
 Real-world performance requires evaluation on independent and clinically representative datasets.
 
----
 
-# 🚀 Future Improvements
-
-Planned or potential improvements include:
-
-* [ ] Larger and more diverse dermatology datasets
-* [ ] Improved representation across skin tones
-* [ ] External validation datasets
-* [ ] Clinical validation
-* [ ] Confidence calibration
-* [ ] Explainable AI
-* [ ] Grad-CAM visualization
-* [ ] Lesion segmentation
-* [ ] Out-of-distribution detection
-* [ ] Improved non-skin image rejection
-* [ ] Model drift monitoring
-* [ ] Automated model registry
-* [ ] Improved feedback verification
-* [ ] Clinician review workflow
-* [ ] Mobile application
-* [ ] Cloud deployment
-* [ ] CI/CD pipeline
-* [ ] Automated model evaluation
-* [ ] Model rollback functionality
-
----
 
 # 🛠️ Technology Stack
 
