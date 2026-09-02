@@ -602,11 +602,10 @@ The Stratum frontend provides an interactive user interface for interacting with
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/stratum-ai-dermatology.git
+git clone https://github.com/gladwin-hub/stratum-ai-dermatology.git
 cd stratum-ai-dermatology
 ```
 
-Replace `YOUR_USERNAME` with your GitHub username.
 
 ---
 
