@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratum — Skin Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --bg-2: #0d1219;
+    --surface: #121926;
+    --surface-2: #1a2333;
+    --surface-3: #222d40;
+    --teal: #4cc9c0;
+    --teal-dim: rgba(76,201,192,0.16);
+    --coral: #ff7a6b;
+    --coral-dim: rgba(255,122,107,0.16);
+    --text: #e9eef4;
+    --muted: #8a96a8;
+    --muted-2: #5c6779;
+    --border: rgba(255,255,255,0.08);
+    --border-2: rgba(255,255,255,0.14);
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(76,201,192,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 10%, rgba(255,122,107,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.5;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+
+  .bg-scene{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    perspective:1000px; overflow:hidden;
+  }
+  .orb{
+    position:absolute; border-radius:50%; filter:blur(2px);
+    transform-style:preserve-3d;
+    will-change:transform;
+    transition:transform 0.3s ease-out;
+  }
+  .orb-1{ width:340px; height:340px; top:-80px; left:6%;
+    background:radial-gradient(circle at 35% 35%, rgba(76,201,192,0.16), transparent 70%);
+    transform:translateZ(-120px); }
+  .orb-2{ width:260px; height:260px; top:40%; right:4%;
+    background:radial-gradient(circle at 35% 35%, rgba(255,122,107,0.14), transparent 70%);
+    transform:translateZ(-200px); }
+  .orb-3{ width:180px; height:180px; bottom:6%; left:18%;
+    background:radial-gradient(circle at 35% 35%, rgba(76,201,192,0.10), transparent 70%);
+    transform:translateZ(-60px); }
+  .orb-4{ width:420px; height:420px; bottom:-160px; right:12%;
+    background:radial-gradient(circle at 35% 35%, rgba(255,122,107,0.08), transparent 70%);
+    transform:translateZ(-260px); }
+  .grid-plane{
+    position:absolute; inset:-20% -20%; opacity:0.05;
+    background-image:linear-gradient(rgba(76,201,192,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(76,201,192,0.6) 1px, transparent 1px);
+    background-size:48px 48px;
+    transform:translateZ(-320px) rotateX(60deg);
+    transform-style:preserve-3d;
+  }
+  main, header, section, nav, footer{position:relative; z-index:1;}
+  a{color:inherit;text-decoration:none;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  @media(max-width:640px){.wrap{padding:0 20px;}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001s !important; transition-duration:0.001s !important;}
+  }
+
+  :focus-visible{outline:2px solid var(--teal); outline-offset:3px; border-radius:4px;}
+
+  nav{
+    position:sticky; top:0; z-index:50;
+    backdrop-filter:blur(16px) saturate(140%);
+    background:rgba(10,14,20,0.72);
+    border-bottom:1px solid var(--border);
+  }
+  nav .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:68px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:700; font-size:19px; letter-spacing:0.01em;}
+  .brand .mark{
+    width:26px;height:26px; position:relative; transform-style:preserve-3d; perspective:200px;
+  }
+  .brand .mark span{
+    position:absolute; inset:0; border-radius:6px;
+    border:1.5px solid var(--teal);
+  }
+  .brand .mark span:nth-child(1){transform:translateZ(0px);}
+  .brand .mark span:nth-child(2){transform:translateZ(-6px) scale(0.86); border-color:var(--coral); opacity:0.75;}
+  .brand .mark span:nth-child(3){transform:translateZ(-12px) scale(0.72); border-color:var(--muted); opacity:0.5;}
+  nav ul{display:flex; gap:36px; list-style:none;}
+  nav ul li a{font-size:14px; color:var(--muted); font-weight:500; transition:color 0.2s;}
+  nav ul li a:hover{color:var(--text);}
+  .nav-cta{
+    padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600;
+    background:var(--teal); color:#04201d; font-family:var(--body);
+    box-shadow:0 6px 18px -6px rgba(76,201,192,0.55);
+    transition:transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .nav-cta:hover{transform:translateY(-2px); box-shadow:0 10px 24px -6px rgba(76,201,192,0.7);}
+  @media(max-width:760px){ nav ul.nav-links{display:none;} }
+
+  header.hero{
+    padding:88px 0 60px;
+    perspective:1400px;
+  }
+  .hero-grid{
+    display:flex; justify-content:center;
+  }
+  .hero-grid > div{ max-width:640px; text-align:center; }
+  .hero-grid .hero-sub{ margin-left:auto; margin-right:auto; }
+  .hero-grid .hero-actions{ justify-content:center; }
+  .hero-grid .hero-stats{ justify-content:center; }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--teal); background:var(--teal-dim); border:1px solid rgba(76,201,192,0.3);
+    padding:6px 12px; border-radius:100px; margin-bottom:22px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--teal); box-shadow:0 0 8px var(--teal); animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+  h1{
+    font-family:var(--display); font-weight:700; font-size:clamp(34px,4.4vw,54px);
+    line-height:1.06; letter-spacing:-0.01em; margin-bottom:22px;
+  }
+  h1 .accent{color:var(--teal);}
+  h1 .accent2{color:var(--coral);}
+  .hero-sub{
+    font-size:16.5px; color:var(--muted); max-width:480px; margin-bottom:34px;
+  }
+  .hero-actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:34px;}
+  .btn-primary{
+    padding:13px 24px; border-radius:10px; background:linear-gradient(135deg,var(--teal),#37a89f);
+    color:#03211d; font-weight:600; font-size:14.5px; box-shadow:0 10px 26px -8px rgba(76,201,192,0.6), inset 0 1px 0 rgba(255,255,255,0.3);
+    transition:transform 0.22s ease, box-shadow 0.22s ease;
+  }
+  .btn-primary:hover{transform:translateY(-3px) scale(1.01); box-shadow:0 16px 32px -8px rgba(76,201,192,0.7), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .btn-ghost{
+    padding:13px 22px; border-radius:10px; border:1px solid var(--border-2); color:var(--text); font-weight:600; font-size:14.5px;
+    background:rgba(255,255,255,0.02);
+    transition:border-color 0.2s, background 0.2s;
+  }
+  .btn-ghost:hover{border-color:var(--border-2); background:rgba(255,255,255,0.06);}
+
+  .hero-stats{display:flex; gap:30px;}
+  .hero-stats div{display:flex; flex-direction:column; gap:2px;}
+  .hero-stats b{font-family:var(--mono); font-size:20px; color:var(--text);}
+  .hero-stats span{font-size:12px; color:var(--muted-2);}
+
+  section{padding:84px 0;}
+  .section-head{max-width:600px; margin-bottom:48px;}
+  .section-eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--coral); margin-bottom:12px; display:block;}
+  h2{font-family:var(--display); font-size:clamp(26px,3vw,36px); font-weight:600; letter-spacing:-0.01em; margin-bottom:14px;}
+  .section-sub{color:var(--muted); font-size:15.5px; max-width:520px;}
+
+  .upload-section .wrap{perspective:1600px;}
+  .upload-card{
+    position:relative; border-radius:22px; padding:2px;
+    background:linear-gradient(135deg, rgba(76,201,192,0.4), rgba(255,122,107,0.25), rgba(255,255,255,0.05));
+    transform-style:preserve-3d;
+    transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
+    max-width:900px; margin:0 auto;
+  }
+  .upload-card-inner{
+    border-radius:20px; background:linear-gradient(180deg, var(--surface), var(--bg-2));
+    padding:44px; display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;
+  }
+  @media(max-width:760px){ .upload-card-inner{grid-template-columns:1fr; padding:28px;} }
+
+  .dropzone{
+    border:1.5px dashed var(--border-2); border-radius:16px; padding:38px 20px;
+    text-align:center; cursor:pointer; position:relative;
+    background:rgba(255,255,255,0.015);
+    transition:border-color 0.2s, background 0.2s, transform 0.2s;
+    transform:translateZ(20px);
+    perspective:900px;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--teal); background:var(--teal-dim); transform:translateZ(28px) scale(1.01);
+  }
+  .dropzone .icon-3d{
+    width:56px; height:56px; margin:0 auto 16px; position:relative; transform-style:preserve-3d;
+  }
+  .dropzone .icon-3d span{
+    position:absolute; inset:0; border-radius:10px; border:1.5px solid var(--teal);
+  }
+  .dropzone .icon-3d span:nth-child(1){transform:translateZ(6px) rotate(0deg);}
+  .dropzone .icon-3d span:nth-child(2){transform:translateZ(0px) rotate(8deg); opacity:0.55;}
+  .dropzone p.title{font-weight:600; font-size:15px; margin-bottom:4px;}
+  .dropzone p.hint{font-size:12.5px; color:var(--muted-2); font-family:var(--mono);}
+  #fileInput{display:none;}
+  #previewWrap{display:none; margin-top:18px;}
+
+  .img-stack{
+    position:relative; width:100%; padding-top:66%;
+    transform-style:preserve-3d;
+    transform:rotateX(12deg) rotateY(-10deg);
+    transition:transform 0.5s cubic-bezier(.2,.8,.2,1);
+  }
+  .dropzone:hover .img-stack{ transform:rotateX(6deg) rotateY(-4deg); }
+
+  .img-layer{
+    position:absolute; inset:0; border-radius:14px; overflow:hidden;
+    border:1px solid var(--border-2);
+    box-shadow:0 14px 34px rgba(0,0,0,0.45);
+    transition:transform 0.7s cubic-bezier(.2,.8,.2,1), opacity 0.55s ease;
+  }
+  .img-layer img, .img-layer canvas{ width:100%; height:100%; object-fit:cover; display:block; }
+  .img-layer.base{ transform:translateZ(0px); z-index:4; }
+  .img-layer.tone{ transform:translateZ(12px) translateX(3px); z-index:3; opacity:0; }
+  .img-layer.tone img{ filter:grayscale(1) contrast(1.5) brightness(1.15); }
+  .img-layer.edge{ transform:translateZ(24px) translateX(-3px); z-index:2; opacity:0; mix-blend-mode:screen; background:#0a0e14; }
+  .img-layer.heat{ transform:translateZ(36px); z-index:1; opacity:0; mix-blend-mode:screen; background:transparent; pointer-events:none; }
+
+  .layer-chip{
+    position:absolute; top:8px; left:8px; z-index:5;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.04em; text-transform:uppercase;
+    padding:4px 9px; border-radius:100px; color:var(--text);
+    background:rgba(10,14,20,0.75); border:1px solid var(--border-2);
+    opacity:0; transition:opacity 0.4s ease; pointer-events:none;
+  }
+
+  .img-stack.state-analyzing .tone{ transform:translateZ(56px) translateX(-16px) rotateZ(2.5deg); opacity:0.95; }
+  .img-stack.state-analyzing .edge{ transform:translateZ(104px) translateX(16px) rotateZ(-3deg); opacity:0.95; }
+  .img-stack.state-analyzing .heat{ transform:translateZ(152px) rotateZ(1.5deg); opacity:0.7; }
+  .img-stack.state-analyzing .layer-chip{ opacity:1; }
+
+  .img-stack.state-done .base{ transform:translateZ(0px); }
+  .img-stack.state-done .tone{ transform:translateZ(2px); opacity:0.22; }
+  .img-stack.state-done .edge{ transform:translateZ(4px); opacity:0.16; }
+  .img-stack.state-done .heat{ transform:translateZ(7px); opacity:0.92; box-shadow:0 0 44px rgba(255,122,107,0.4); }
+  .img-stack.state-done .layer-chip{ opacity:0; }
+
+  .stack-readout{
+    display:flex; justify-content:space-between; margin-top:14px;
+    font-family:var(--mono); font-size:10.5px; color:var(--muted-2);
+  }
+  .stack-readout .val{ color:var(--teal); }
+
+  .upload-info{transform:translateZ(10px);}
+  .upload-info h3{font-family:var(--display); font-size:20px; margin-bottom:12px;}
+  .checklist{list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:22px;}
+  .checklist li{display:flex; gap:10px; font-size:13.5px; color:var(--muted); align-items:flex-start;}
+  .checklist li .chk{
+    width:16px; height:16px; border-radius:5px; background:var(--teal-dim); border:1px solid var(--teal);
+    flex-shrink:0; margin-top:2px; position:relative;
+  }
+  .checklist li .chk::after{content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--teal);}
+
+  #analyzeBtn{width:100%;}
+  #analyzeBtn:disabled{opacity:0.45; cursor:not-allowed; transform:none !important;}
+
+  .progress-wrap{display:none; margin-top:16px;}
+  .progress-track{height:6px; border-radius:100px; background:var(--surface-3); overflow:hidden;}
+  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--coral)); border-radius:100px; transition:width 0.3s ease;}
+  .progress-label{font-family:var(--mono); font-size:11px; color:var(--muted-2); margin-top:8px;}
+
+  #resultsSection{display:none;}
+  .results-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:22px; perspective:1600px;
+  }
+  @media(max-width:900px){.results-grid{grid-template-columns:1fr;}}
+  .result-card{
+    position:relative; height:248px; perspective:1400px; cursor:default;
+  }
+  .result-flip{
+    position:relative; width:100%; height:100%; transform-style:preserve-3d;
+    transition:transform 0.7s cubic-bezier(.22,.9,.32,1);
+  }
+  .result-card:hover .result-flip{ transform:rotateY(180deg); }
+  .result-face{
+    position:absolute; inset:0; border-radius:18px; padding:1px;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:linear-gradient(150deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02));
+  }
+  .result-card.primary .result-face{ background:linear-gradient(150deg, rgba(76,201,192,0.6), rgba(76,201,192,0.05)); }
+  .result-face.back{ transform:rotateY(180deg); }
+  .result-face-inner{
+    background:var(--surface); border-radius:17px; padding:24px; height:100%;
+    display:flex; flex-direction:column;
+  }
+  .result-card.primary .result-face.front .result-face-inner{background:linear-gradient(180deg, rgba(76,201,192,0.08), var(--surface) 60%);}
+  .result-face.back .result-face-inner{background:linear-gradient(180deg, rgba(255,122,107,0.07), var(--surface) 55%); justify-content:center;}
+  .result-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;}
+  .result-name{font-family:var(--display); font-weight:600; font-size:16.5px;}
+  .result-badge{font-family:var(--mono); font-size:10px; padding:4px 8px; border-radius:100px; text-transform:uppercase; letter-spacing:0.04em;}
+  .badge-primary{background:var(--teal-dim); color:var(--teal); border:1px solid rgba(76,201,192,0.4);}
+  .badge-other{background:rgba(255,255,255,0.06); color:var(--muted); border:1px solid var(--border);}
+  .confidence-ring{ width:100%; margin-bottom:14px; }
+  .conf-num{font-family:var(--mono); font-size:34px; font-weight:500;}
+  .conf-num span{font-size:14px; color:var(--muted-2);}
+  .bar-track{height:7px; border-radius:100px; background:var(--surface-3); margin-top:10px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:100px; background:linear-gradient(90deg,var(--coral),var(--teal));}
+  .result-flip-hint{margin-top:auto; font-family:var(--mono); font-size:10px; color:var(--muted-2); text-transform:uppercase; letter-spacing:0.05em;}
+  .result-desc{font-size:13px; color:var(--muted); line-height:1.6; text-align:center;}
+  .result-desc-label{display:block; font-family:var(--mono); font-size:10px; color:var(--coral); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; text-align:center;}
+
+  .disclaimer-box{
+    margin-top:28px; padding:18px 22px; border-radius:14px;
+    background:var(--coral-dim); border:1px solid rgba(255,122,107,0.3);
+    display:flex; gap:14px; align-items:flex-start;
+  }
+  .disclaimer-box .mark3d{
+    width:22px;height:22px; flex-shrink:0; border-radius:50%; border:1.5px solid var(--coral);
+    display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; font-size:13px; color:var(--coral);
+    transform-style:preserve-3d; box-shadow:0 4px 10px rgba(255,122,107,0.25);
+  }
+  .disclaimer-box p{font-size:12.5px; color:var(--muted); line-height:1.6;}
+  .disclaimer-box strong{color:var(--text);}
+
+  #performanceSection{display:block;}
+  .dashboard-status{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted-2);}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted-2);box-shadow:0 0 0 transparent;}
+  .status-dot.live{background:var(--teal);box-shadow:0 0 10px rgba(76,201,192,.7);}
+  .status-dot.error{background:var(--coral);box-shadow:0 0 10px rgba(255,122,107,.5);}
+  .metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px;}
+  @media(max-width:1050px){.metric-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:600px){.metric-grid{grid-template-columns:repeat(2,1fr);}}
+  .metric-card{background:linear-gradient(180deg,var(--surface),var(--bg-2));border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+  .metric-card::after{content:'';position:absolute;width:90px;height:90px;right:-35px;top:-35px;border-radius:50%;background:radial-gradient(circle,rgba(76,201,192,.12),transparent 70%);}
+  .metric-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-2);display:block;margin-bottom:8px;}
+  .metric-value{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1.1;}
+  .metric-note{font-size:11px;color:var(--muted-2);margin-top:8px;}
+  .dashboard-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-bottom:22px;}
+  @media(max-width:850px){.dashboard-grid{grid-template-columns:1fr;}}
+  .dashboard-card{background:linear-gradient(180deg,var(--surface),var(--bg-2));border:1px solid var(--border);border-radius:18px;padding:24px;min-width:0;}
+  .dashboard-card h3{font-family:var(--display);font-size:17px;margin-bottom:5px;}
+  .dashboard-card .card-sub{font-size:12px;color:var(--muted-2);margin-bottom:18px;}
+  .matrix-wrap{overflow:auto;}
+  .matrix{border-collapse:separate;border-spacing:4px;margin:0 auto;min-width:390px;}
+  .matrix th{font-family:var(--mono);font-size:9px;color:var(--muted-2);font-weight:500;max-width:70px;}
+  .matrix th.axis{padding:7px;writing-mode:vertical-rl;transform:rotate(180deg);}
+  .matrix td{width:48px;height:42px;text-align:center;border-radius:6px;font-family:var(--mono);font-size:10px;background:var(--surface-3);}
+  .matrix td.diag{outline:1px solid rgba(76,201,192,.45);}
+  .chart-box{height:285px;position:relative;}
+  .chart-box canvas{width:100%;height:100%;display:block;}
+  .class-list{display:flex;flex-direction:column;gap:13px;}
+  .report-wrap{overflow:auto;}
+  .report-table{width:100%;border-collapse:collapse;min-width:720px;font-family:var(--mono);font-size:11px;}
+  .report-table th,.report-table td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:right;}
+  .report-table th:first-child,.report-table td:first-child{text-align:left;}
+  .report-table th{color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;font-size:9px;}
+  .report-table td{color:var(--text);}
+  .report-table tbody tr:hover{background:rgba(255,255,255,.025);}
+  .report-table .summary-row td{color:var(--teal);font-weight:600;border-top:1px solid var(--border-2);}
+  .report-table .support{color:var(--muted);}
+  .class-row{display:grid;grid-template-columns:minmax(130px,1fr) 1.5fr 48px;gap:10px;align-items:center;}
+  .class-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .class-bar{height:7px;background:var(--surface-3);border-radius:100px;overflow:hidden;}
+  .class-bar span{display:block;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--coral),var(--teal));}
+  .class-score{font-family:var(--mono);font-size:10px;text-align:right;color:var(--text);}
+  .binary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:650px){.binary-grid{grid-template-columns:1fr;}}
+  .binary-metric{padding:18px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.018);}
+  .binary-metric .metric-value{font-size:25px;}
+  .dashboard-empty{padding:34px;border:1px dashed var(--border-2);border-radius:16px;text-align:center;color:var(--muted);font-size:13px;}
+  .dashboard-error{color:var(--coral);}
+  .eval-footnote{font-size:11px;color:var(--muted-2);line-height:1.6;margin-top:18px;}
+
+  .steps{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:20px; perspective:1400px;
+  }
+  @media(max-width:900px){.steps{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.steps{grid-template-columns:1fr;}}
+  .step-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px 22px;
+    transform-style:preserve-3d; transition:transform 0.25s ease, border-color 0.25s ease;
+    position:relative; overflow:hidden;
+  }
+  .step-card:hover{ transform:translateY(-6px) rotateX(6deg) rotateY(-4deg); border-color:var(--border-2); }
+  .step-card::before{
+    content:''; position:absolute; top:-40%; right:-40%; width:120px; height:120px; border-radius:50%;
+    background:radial-gradient(circle, rgba(76,201,192,0.15), transparent 70%);
+  }
+  .step-num{font-family:var(--mono); font-size:12px; color:var(--teal); margin-bottom:16px; display:block;}
+  .step-card h4{font-family:var(--display); font-size:16px; margin-bottom:8px;}
+  .step-card p{font-size:13px; color:var(--muted); line-height:1.55;}
+
+  .trust-strip{
+    display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between;
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    padding:28px 0;
+  }
+  .trust-item{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted); font-family:var(--mono);}
+  .trust-item .dotmark{width:6px;height:6px;border-radius:50%;background:var(--teal);}
+
+  footer{padding:56px 0 40px; border-top:1px solid var(--border); margin-top:20px;}
+  .footer-grid{display:flex; justify-content:space-between; flex-wrap:wrap; gap:30px;}
+  footer .brand{margin-bottom:10px;}
+  footer p.small{font-size:12.5px; color:var(--muted-2); max-width:340px; line-height:1.6;}
+  .footer-cols{display:flex; gap:60px; flex-wrap:wrap;}
+  .footer-col h5{font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted-2); margin-bottom:14px;}
+  .footer-col a{display:block; font-size:13px; color:var(--muted); margin-bottom:10px; transition:color 0.2s;}
+  .footer-col a:hover{color:var(--text);}
+  .footer-bottom{margin-top:44px; padding-top:24px; border-top:1px solid var(--border); font-size:12px; color:var(--muted-2); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+  .reveal{
+    opacity:0; transform:translateY(34px) translateZ(-60px) rotateX(-6deg);
+    transition:opacity 0.8s ease, transform 0.8s cubic-bezier(.2,.8,.2,1);
+  }
+  .reveal.in{ opacity:1; transform:translateY(0) translateZ(0) rotateX(0deg); }
+  .reveal-stagger.in .step-card:nth-child(1){transition-delay:0.05s;}
+  .reveal-stagger.in .step-card:nth-child(2){transition-delay:0.15s;}
+  .reveal-stagger.in .step-card:nth-child(3){transition-delay:0.25s;}
+  .reveal-stagger.in .step-card:nth-child(4){transition-delay:0.35s;}
+  .reveal-stagger .step-card{opacity:0; transform:translateY(24px) rotateX(-10deg); transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.2,1);}
+  .reveal-stagger.in .step-card{opacity:1; transform:translateY(0) rotateX(0deg);}
+
+  .auth-screen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(5,8,12,.94);backdrop-filter:blur(18px);}
+  .auth-card{width:min(460px,100%);background:linear-gradient(180deg,var(--surface),var(--bg-2));border:1px solid var(--border-2);border-radius:22px;padding:32px;box-shadow:0 30px 80px rgba(0,0,0,.55);}
+  .auth-card h2{margin-bottom:8px}.auth-card p{color:var(--muted);font-size:13px;margin-bottom:22px}
+  .auth-tabs{display:grid;grid-template-columns:1fr 1fr;margin-bottom:20px;background:var(--surface-3);border-radius:10px;padding:3px}
+  .auth-tabs button{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:8px;cursor:pointer;font-weight:600}
+  .auth-tabs button.active{background:var(--teal);color:#04201d}
+  .auth-form{display:grid;gap:12px}.auth-form input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border-2);background:#0b1119;color:var(--text);outline:none}
+  .auth-form input:focus{border-color:var(--teal)}.auth-msg{min-height:18px;font-size:12px;color:var(--coral)}
+  .session-bar{display:flex;align-items:center;gap:10px}.user-pill{font-family:var(--mono);font-size:10px;color:var(--teal);border:1px solid rgba(76,201,192,.3);padding:7px 10px;border-radius:100px}
+  .logout-btn{border:1px solid var(--border-2);background:transparent;color:var(--muted);padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px}.logout-btn:hover{color:var(--text)}
+  .role-banner{display:none;margin:18px 0;padding:13px 16px;border:1px solid rgba(76,201,192,.25);background:var(--teal-dim);border-radius:12px;color:var(--muted);font-size:12px}.role-banner strong{color:var(--text)}
+  #adminSection{display:none}.admin-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}@media(max-width:900px){.admin-grid{grid-template-columns:repeat(2,1fr)}}
+  .admin-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:14px}.admin-table{width:100%;min-width:950px;border-collapse:collapse;font-family:var(--mono);font-size:11px}.admin-table th,.admin-table td{padding:12px;border-bottom:1px solid var(--border);text-align:left}.admin-table th{color:var(--muted);font-size:9px;text-transform:uppercase}.admin-table td{color:var(--text)}
+  .thumb{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+  .status-chip{display:inline-block;padding:4px 8px;border-radius:100px;background:rgba(255,255,255,.06);color:var(--muted);font-size:9px}.status-chip.ok{color:var(--teal);background:var(--teal-dim)}
+  .user-history{margin-top:22px;display:none}.history-list{display:grid;gap:10px}.history-item{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:13px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.015)}
+  .history-item small{color:var(--muted-2);font-family:var(--mono)}
+  .enhance-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.enhance-controls label{font-size:10px;color:var(--muted);font-family:var(--mono)}.enhance-controls input{width:100%}@media(max-width:650px){.enhance-controls{grid-template-columns:1fr}}
+  .live-status{font-family:var(--mono);font-size:10px;color:var(--muted-2);margin-top:10px}
+  .locked-note{padding:20px;border:1px dashed var(--border-2);border-radius:14px;color:var(--muted);text-align:center}
+  .export-bar{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;}
+  .id-col{color:#4cc9c0;font-family:monospace;font-size:14px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="authScreen" style="display:none;">
+  <div class="auth-card">
+    <div class="brand" style="margin-bottom:18px"><div class="mark"><span></span><span></span><span></span></div>Stratum</div>
+    <h2 id="authTitle">Sign in</h2>
+    <p id="authSubtitle">Access your secure skin-analysis workspace.</p>
+    <div class="auth-tabs"><button id="loginTab" class="active">Login</button><button id="registerTab">New user</button></div>
+    <form class="auth-form" id="authForm">
+      <input id="authName" type="text" placeholder="Full name" autocomplete="name" style="display:none">
+      <input id="authEmail" type="email" placeholder="Email address" autocomplete="email" required>
+      <input id="authPassword" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required>
+      <button class="btn-primary" type="submit" id="authSubmit">Sign in</button>
+      <div class="auth-msg" id="authMsg"></div>
+    </form>
+    <p style="margin:14px 0 0;font-size:11px">Administrator access is restricted to the configured admin account.</p>
+    <button class="logout-btn" type="button" id="authCloseBtn" style="margin-top:14px;width:100%;">Close</button>
+  </div>
+</div>
+
+<!-- BACKGROUND -->
+<div class="bg-scene" id="bgScene">
+  <div class="grid-plane"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap">
+    <div class="brand"><div class="mark"><span></span><span></span><span></span></div>Stratum</div>
+    <ul class="nav-links">
+      <li><a href="#upload">Analyze</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#performance">Model performance</a></li>
+      <li id="resultsNav" style="display:none;"><a href="#results">Results</a></li>
+    </ul>
+    <div class="session-bar">
+      <button class="nav-cta" id="loginNavBtn" type="button">Login</button>
+      <span class="user-pill" id="userPill" style="display:none;"></span>
+      <button class="logout-btn" id="accountBtn" style="display:none;">Account</button>
+      <button class="logout-btn" id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> Dermatology-assist demo</div>
+      <h1>See what's beneath the <span class="accent">surface</span>, one <span class="accent2">layer</span> at a time.</h1>
+      <p class="hero-sub">Upload a photo of a skin concern and Stratum breaks it down layer by layer — texture, pigment, and border pattern — to surface the most likely conditions worth discussing with a dermatologist.</p>
+      <div class="hero-actions">
+        <a href="#upload" class="btn-primary">Analyze a photo</a>
+        <a href="#how" class="btn-ghost">See how it works</a>
+      </div>
+      <div class="hero-stats">
+        <div><b>4</b><span>Layers per analysis</span></div>
+        <div><b>&lt;10s</b><span>Typical scan time</span></div>
+        <div><b>Demo</b><span>Not a diagnosis</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap"><div class="role-banner" id="roleBanner"></div></div>
+
+<!-- USER HISTORY -->
+<section class="user-history" id="userHistorySection"><div class="wrap"><div class="section-head"><span class="section-eyebrow">Patient tracking</span><h2>Your submissions</h2><p class="section-sub">You can track submission status. Diagnostic findings remain restricted to authorized administrators.</p></div><div class="history-list" id="historyList"></div></div></section>
+
+<!-- ADMIN SECTION -->
+<section id="adminSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-eyebrow">Admin only</span><h2>Risk assessment dashboard</h2><p class="section-sub">Authorized administrator view of users, submissions, model findings and risk signals.</p></div>
+    <div class="admin-grid" id="adminStats"></div>
+
+    <div class="export-bar">
+      <button onclick="showPatientExportSelector()" class="btn-ghost" style="padding:10px 20px;font-size:13px;">📄 Patient PDF</button>
+      <button onclick="triggerFineTune()" class="btn-primary" style="padding:10px 20px;font-size:13px;">🔬 Start Fine-Tuning</button>
+      <button onclick="evaluateModels()" class="btn-ghost" style="padding:10px 20px;font-size:13px;">📊 Evaluate Models</button>
+      <button onclick="clearAllData()" class="btn-ghost" style="padding:10px 20px;font-size:13px;color:var(--coral);border-color:rgba(255,122,107,.4);">🗑️ Clear All Data</button>
+    </div>
+
+    <!-- MODEL EVALUATION COMPARISON -->
+    <div class="dashboard-card" id="evaluationResultsCard" style="display:none; margin-bottom: 22px;">
+      <h3>Model Comparison Results</h3>
+      <p class="card-sub">Live evaluation against the validation dataset.</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width: 600px;">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Accuracy</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1-Score</th>
+              <th>Images</th>
+            </tr>
+          </thead>
+          <tbody id="evaluationResultsBody">
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:#8a96a8;">Click "Evaluate Models" to load results.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    
+
+    <!-- Feedback Log with Delete Button -->
+    <div class="dashboard-card" style="margin-bottom:22px;">
+      <h3>Detailed Feedback Log</h3>
+      <p class="card-sub">See what users typed and how they rated the AI. Click 🗑️ to delete feedback.</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width: 800px;">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>AI Prediction</th>
+              <th>User Rating</th>
+              <th>Corrected Disease</th>
+              <th>Comments</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackRows">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#8a96a8;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="dashboard-card" style="margin-bottom:22px;">
+      <h3>Admin account settings</h3>
+      <p class="card-sub">Change your own admin login email or password.</p>
+      <form class="auth-form" id="accountForm" style="max-width:420px;">
+        <input id="acctName" type="text" placeholder="Name">
+        <input id="acctEmail" type="email" placeholder="Email address">
+        <input id="acctNewPassword" type="password" placeholder="New password (leave blank to keep current)">
+        <input id="acctCurrentPassword" type="password" placeholder="Current password (required to save)" required>
+        <button class="btn-primary" type="submit">Save changes</button>
+        <div class="auth-msg" id="acctMsg"></div>
+      </form>
+    </div>
+
+    <div class="dashboard-card">
+      <h3>Patient analyses</h3>
+      <p class="card-sub">Complete AI output is visible only in this administrator workspace. Click 📄 to export a single analysis, or 🗑️ to delete a record.</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th># ID</th>
+              <th>Image</th>
+              <th>Patient</th>
+              <th>Status</th>
+              <th>Skin</th>
+              <th>Disease</th>
+              <th>Confidence</th>
+              <th>Risk</th>
+              <th>Probability</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD SECTION -->
+<section class="upload-section" id="upload">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-eyebrow">01 — Upload</span>
+      <h2>Start with a clear photo</h2>
+      <p class="section-sub">Good lighting and a close, in-focus shot of the area give the most reliable read. Users can submit images; diagnostic findings are visible only to administrators.</p>
+    </div>
+
+    <div class="upload-card reveal" id="uploadCard">
+      <div class="upload-card-inner">
+        <div>
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div class="icon-3d"><span></span><span></span></div>
+            <p class="title">Drop an image, or click to browse</p>
+            <p class="hint">JPG · PNG — up to 10MB</p>
+            <div id="previewWrap">
+              <div class="img-stack" id="imgStack">
+                <div class="img-layer base"><img id="previewImg" alt="Uploaded skin photo"><span class="layer-chip">Original</span></div>
+                <div class="img-layer tone"><img id="toneImg" alt=""><span class="layer-chip">Grayscale</span></div>
+                <div class="img-layer edge"><canvas id="edgeCanvas"></canvas><span class="layer-chip">Edge map</span></div>
+                <div class="img-layer heat"><canvas id="heatCanvas"></canvas><span class="layer-chip">Heatmap</span></div>
+              </div>
+              <div class="stack-readout">
+                <span id="readoutLeft">layer 1 / 4 — source</span>
+                <span class="val" id="readoutRight">—</span>
+              </div>
+            </div>
+            <div class="enhance-controls">
+              <label>BRIGHTNESS <input id="enhBrightness" type="range" min="70" max="140" value="100"></label>
+              <label>CONTRAST <input id="enhContrast" type="range" min="70" max="150" value="100"></label>
+              <label>SATURATION <input id="enhSaturation" type="range" min="60" max="140" value="100"></label>
+            </div>
+            <div class="live-status" id="liveStatus">Live preview ready · enhancement is client-side</div>
+          </div>
+        </div>
+        <div class="upload-info">
+          <h3>What Stratum checks</h3>
+          <ul class="checklist">
+            <li><span class="chk"></span> Border irregularity and asymmetry</li>
+            <li><span class="chk"></span> Color variation across the lesion</li>
+            <li><span class="chk"></span> Texture and surface pattern</li>
+            <li><span class="chk"></span> Relative size against reference scale</li>
+          </ul>
+          
+          <!-- ADMIN ONLY - MODEL SELECTOR -->
+          <div id="adminModelSelector" style="display:none; margin-bottom: 16px;">
+            <label style="font-family:var(--mono); font-size:12px; color:var(--muted);">TESTING MODEL (ADMIN ONLY):</label>
+            <select id="modelSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-2); background:#0b1119; color:var(--text); margin-top:8px;">
+              <option value="best">Original Model (best)</option>
+            </select>
+          </div>
+
+          <button class="btn-primary" id="analyzeBtn" disabled>Run analysis</button>
+          <div class="progress-wrap" id="progressWrap">
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-label" id="progressLabel">Initializing layers…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS SECTION -->
+<section id="resultsSection">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-eyebrow">02 — Results</span>
+      <h2 id="results">Most likely findings</h2>
+      <p class="section-sub">Ranked by pattern match confidence, generated by the trained model — always confirm with a licensed clinician.</p>
+    </div>
+    <div class="results-grid" id="resultsGrid"></div>
+    <div class="disclaimer-box">
+      <div class="mark3d">!</div>
+      <p><strong>This is not a medical device.</strong> Stratum is a pattern-recognition demo, not a diagnostic tool cleared for clinical use. Never delay care based on an app. If a spot is changing, bleeding, or worrying you, see a dermatologist or physician directly.</p>
+    </div>
+  </div>
+</section>
+<!-- PUBLIC MODEL EVALUATION SECTION -->
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-eyebrow">Process</span>
+      <h2>Four passes, one photo</h2>
+      <p class="section-sub">Each pass adds a layer to the read — the same order a dermatologist's eye moves through.</p>
+    </div>
+    <div class="steps reveal-stagger">
+      <div class="step-card"><span class="step-num">01</span><h4>Capture</h4><p>Photo is aligned and cropped to isolate the area of concern from surrounding skin.</p></div>
+      <div class="step-card"><span class="step-num">02</span><h4>Surface pass</h4><p>Border shape, edge softness, and symmetry are mapped across the lesion.</p></div>
+      <div class="step-card"><span class="step-num">03</span><h4>Pigment pass</h4><p>Color clusters and contrast against surrounding tissue are measured.</p></div>
+      <div class="step-card"><span class="step-num">04</span><h4>Ranked read</h4><p>Layers are combined into a ranked list of likely findings with confidence scores.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="trust-strip reveal">
+    <div class="trust-item"><span class="dotmark"></span> On-device preview, nothing uploaded in this demo</div>
+    <div class="trust-item"><span class="dotmark"></span> Built for education, not diagnosis</div>
+    <div class="trust-item"><span class="dotmark"></span> Always confirm with a clinician</div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="brand"><div class="mark"><span></span><span></span><span></span></div>Stratum</div>
+        <p class="small">A concept interface for layered skin-photo analysis. Built as a design demo — not connected to a real diagnostic model.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col"><h5>Product</h5><a href="#upload">Analyze</a><a href="#how">How it works</a><a href="#results">Results</a></div>
+        <div class="footer-col"><h5>Trust</h5><a href="#">Medical disclaimer</a><a href="#">Privacy</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stratum — demo interface</span>
+      <span>Not a substitute for professional medical advice</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+
+const AUTH_BASE = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'http://127.0.0.1:8000';
+let currentUser = null;
+const authScreen = document.getElementById('authScreen');
+const authForm = document.getElementById('authForm');
+const authName = document.getElementById('authName');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authMsg = document.getElementById('authMsg');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const authSubmit = document.getElementById('authSubmit');
+const authCloseBtn = document.getElementById('authCloseBtn');
+const loginTab = document.getElementById('loginTab');
+const registerTab = document.getElementById('registerTab');
+const loginNavBtn = document.getElementById('loginNavBtn');
+const userPill = document.getElementById('userPill');
+const accountBtn = document.getElementById('accountBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const roleBanner = document.getElementById('roleBanner');
+const userHistorySection = document.getElementById('userHistorySection');
+const historyList = document.getElementById('historyList');
+const adminSection = document.getElementById('adminSection');
+const resultsNav = document.getElementById('resultsNav');
+let authMode = 'login';
+
+function setAuthMode(mode){
+  authMode=mode; authMsg.textContent='';
+  const register=mode==='register';
+  loginTab.classList.toggle('active',!register); registerTab.classList.toggle('active',register);
+  authName.style.display=register?'block':'none'; authName.required=register;
+  authTitle.textContent=register?'Create account':'Sign in';
+  authSubtitle.textContent=register?'Create a secure user account to submit skin images.':'Access your secure skin-analysis workspace.';
+  authSubmit.textContent=register?'Create account':'Sign in';
+}
+loginTab.onclick=()=>setAuthMode('login'); registerTab.onclick=()=>setAuthMode('register');
+loginNavBtn.onclick=()=>{ authScreen.style.display='flex'; };
+authCloseBtn.onclick=()=>{ authScreen.style.display='none'; };
+authScreen.addEventListener('click', (e)=>{ if(e.target===authScreen) authScreen.style.display='none'; });
+
+async function authFetch(path, options={}){
+  options.credentials='include'; options.headers={...(options.headers||{}), 'Content-Type':'application/json'};
+  const res=await fetch(`${AUTH_BASE}${path}`,options); const data=await res.json().catch(()=>({message:'Invalid server response'}));
+  if(!res.ok) throw new Error(data.detail||data.message||`Request failed (${res.status})`); return data;
+}
+authForm.addEventListener('submit',async e=>{
+  e.preventDefault(); authSubmit.disabled=true; authMsg.textContent='';
+  try{
+    if(authMode==='register'){
+      await authFetch('/api/auth/register',{method:'POST',body:JSON.stringify({name:authName.value.trim(),email:authEmail.value.trim(),password:authPassword.value})});
+      setAuthMode('login'); authEmail.value=authEmail.value.trim(); authPassword.value=''; authMsg.style.color='var(--teal)'; authMsg.textContent='Account created. Sign in to continue.';
+    }else{
+      const data=await authFetch('/api/auth/login',{method:'POST',body:JSON.stringify({email:authEmail.value.trim(),password:authPassword.value})});
+      authScreen.style.display='none';
+      setAuthenticated(data.user);
+    }
+  }catch(err){authMsg.style.color='var(--coral)';authMsg.textContent=err.message}finally{authSubmit.disabled=false}
+});
+async function checkSession(){
+  try{const data=await authFetch('/api/auth/me'); setAuthenticated(data.user)}catch(e){ setSignedOut(); }
+}
+function setSignedOut(){
+  currentUser=null;
+  loginNavBtn.style.display='inline-flex';
+  userPill.style.display='none'; accountBtn.style.display='none'; logoutBtn.style.display='none';
+  roleBanner.style.display='none';
+  userHistorySection.style.display='none'; adminSection.style.display='none';
+  if(resultsNav) resultsNav.style.display='none';
+  resultsSection.style.display='none';
+  document.getElementById('performanceSection').style.display = 'none';
+  document.getElementById('analyticsCharts').style.display='none';
+}
+function setAuthenticated(user){
+  currentUser=user;
+  loginNavBtn.style.display='none';
+  userPill.style.display='inline-flex'; userPill.textContent=`${user.role.toUpperCase()} · ${user.name}`;
+  accountBtn.style.display='inline-flex'; logoutBtn.style.display='inline-flex';
+  roleBanner.style.display='block';
+  if(user.role==='admin'){
+    roleBanner.innerHTML='<strong>Administrator workspace.</strong> Full analysis results and risk assessment are enabled.';
+    adminSection.style.display='block'; userHistorySection.style.display='none';
+    accountBtn.style.display='inline-flex';
+    if(resultsNav) resultsNav.style.display='list-item';
+    acctName.value=user.name; acctEmail.value=user.email;
+    document.getElementById('adminModelSelector').style.display = 'block';
+    loadAdminDashboard();
+    
+    loadFeedbackStats();
+    loadAvailableModels();
+    refreshEvaluationData();
+  }else{
+    roleBanner.innerHTML='<strong>User workspace.</strong> You may submit images and track submission status. Diagnostic findings, confidence scores, malignancy risk, and model evaluation are restricted to administrators.';
+    userHistorySection.style.display='block'; adminSection.style.display='none';
+    accountBtn.style.display='none';
+    if(resultsNav) resultsNav.style.display='none';
+    resultsSection.style.display='none';
+    document.getElementById('adminModelSelector').style.display = 'none';
+    document.getElementById('performanceSection').style.display = 'none';
+    loadMySubmissions();
+  }
+}
+logoutBtn.onclick=async()=>{try{await authFetch('/api/auth/logout',{method:'POST'})}catch(e){} location.reload()};
+accountBtn.onclick=()=>{
+  if(currentUser && currentUser.role==='admin'){
+    adminSection.scrollIntoView({behavior:'smooth'});
+  } else {
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+};
+
+// Account settings
+const accountForm = document.getElementById('accountForm');
+const acctName = document.getElementById('acctName');
+const acctEmail = document.getElementById('acctEmail');
+const acctNewPassword = document.getElementById('acctNewPassword');
+const acctCurrentPassword = document.getElementById('acctCurrentPassword');
+const acctMsg = document.getElementById('acctMsg');
+if(accountForm){
+  accountForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    acctMsg.style.color='var(--coral)'; acctMsg.textContent='';
+    try{
+      const payload={ current_password: acctCurrentPassword.value };
+      if(acctName.value.trim()) payload.name=acctName.value.trim();
+      if(acctEmail.value.trim()) payload.email=acctEmail.value.trim();
+      if(acctNewPassword.value) payload.new_password=acctNewPassword.value;
+      const data=await authFetch('/api/account',{method:'POST',body:JSON.stringify(payload)});
+      acctMsg.style.color='var(--teal)'; acctMsg.textContent='Account updated successfully.';
+      acctCurrentPassword.value=''; acctNewPassword.value='';
+      userPill.textContent=`${data.user.role.toUpperCase()} · ${data.user.name}`;
+    }catch(err){ acctMsg.style.color='var(--coral)'; acctMsg.textContent=err.message; }
+  });
+}
+
+async function loadMySubmissions(){
+  if(!currentUser || currentUser.role!=='user') return;
+  try{const data=await authFetch('/api/my-submissions'); historyList.innerHTML=data.submissions.length?data.submissions.map(x=>`<div class="history-item"><div><strong>Submission #${x.id}</strong><br><small>${safeText(x.created_at)}</small></div><span class="status-chip ${x.status==='completed'?'ok':''}">${safeText(x.status)} · ${safeText(x.skin_status||'pending')}</span></div>`).join(''):'<div class="locked-note">No submissions yet.</div>'}catch(e){historyList.innerHTML=`<div class="locked-note">${safeText(e.message)}</div>`}
+}
+
+// ============================================================================
+// MODEL SELECTION & FINE-TUNING
+// ============================================================================
+
+async function loadAvailableModels() {
+  try {
+    const data = await authFetch('/api/admin/models');
+    const select = document.getElementById('modelSelect');
+    select.innerHTML = '';
+    data.models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.version;
+      opt.textContent = m.name;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('Failed to load models:', e);
+  }
+}
+
+window.triggerFineTune = async function() {
+  if(!confirm("This will fine-tune the AI on verified feedback. Proceed?")) return;
+  try {
+    const res = await authFetch('/api/admin/fine-tune', {method: 'POST'});
+    alert(res.message);
+    loadAvailableModels();
+  } catch(e) { alert("Error: " + e.message); }
+};
+
+// ============================================================================
+// EVALUATE MODELS (DISPLAYS ON PAGE)
+// ============================================================================
+
+window.evaluateModels = async function() {
+  try {
+    const data = await authFetch('/api/admin/evaluate-models');
+    
+    // Show the card
+    document.getElementById('evaluationResultsCard').style.display = 'block';
+    
+    const tableBody = document.getElementById('evaluationResultsBody');
+    
+    // Build rows
+    let rows = '';
+    data.models.forEach(m => {
+      if (m.metrics.error) {
+        rows += `
+          <tr>
+            <td><strong style="color:#4cc9c0;">${m.name}</strong></td>
+            <td colspan="5" style="color:#ff7a6b;">ERROR: ${m.metrics.error}</td>
+          </tr>
+        `;
+      } else {
+        // Color logic: Green if F1 > 0.6, Yellow if > 0.4, Red if lower
+        let color = '#ff7a6b'; 
+        if (m.metrics.f1 > 0.6) color = '#4cc9c0';
+        else if (m.metrics.f1 > 0.4) color = '#f9c74f';
+        
+        rows += `
+          <tr>
+            <td><strong style="color:#4cc9c0;">${m.name}</strong></td>
+            <td>${(m.metrics.accuracy * 100).toFixed(2)}%</td>
+            <td>${(m.metrics.precision * 100).toFixed(2)}%</td>
+            <td>${(m.metrics.recall * 100).toFixed(2)}%</td>
+            <td><span style="color:${color}; font-weight:bold;">${(m.metrics.f1 * 100).toFixed(2)}%</span></td>
+            <td>${m.metrics.total_images}</td>
+          </tr>
+        `;
+      }
+    });
+    
+    tableBody.innerHTML = rows;
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+};
+
+// ============================================================================
+// ADMIN DASHBOARD
+// ============================================================================
+
+async function loadAdminDashboard(){
+  try{
+    const [stats,items]=await Promise.all([authFetch('/api/admin/stats'),authFetch('/api/admin/analyses')]);
+    document.getElementById('adminStats').innerHTML=[
+      ['Users',stats.users],
+      ['Analyses',stats.total_analyses],
+      
+      ['Completed',stats.completed]
+    ].map(x=>`<div class="metric-card"><span class="metric-label">${x[0]}</span><div class="metric-value">${Number(x[1]).toLocaleString()}</div></div>`).join('');
+    renderAdminRows(items.analyses);
+  }catch(e){document.getElementById('adminRows').innerHTML=`<tr><td colspan="11">${safeText(e.message)}</td></tr>`}
+}
+
+function renderAdminRows(analyses){
+  const adminRows = document.getElementById('adminRows');
+  if (!analyses || analyses.length === 0) {
+    adminRows.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#8a96a8;">No analyses yet. Upload some images first.</td></tr>';
+    return;
+  }
+  adminRows.innerHTML = analyses.map(x => `
+    <tr data-id="${x.id}">
+      <td><span class="id-col">#${x.id}</span></td>
+      <td><img class="thumb" src="data:image/jpeg;base64,${x.image_base64}" alt="submission"></td>
+      <td><strong>${safeText(x.user_name)}</strong><br><small style="color:#8a96a8;">${safeText(x.user_email)}</small></td>
+      <td><span class="status-chip ${x.status==='completed'?'ok':''}">${safeText(x.status)}</span></td>
+      <td>${safeText(x.skin_status||'—')}</td>
+      <td>${safeText(x.disease||'—')}</td>
+      <td>${x.confidence==null?'—':Number(x.confidence).toFixed(1)+'%'}</td>
+      <td><span style="color:${x.malignancy_risk==='HIGH'?'#ff7a6b':'#4cc9c0'}">${safeText(x.malignancy_risk||'—')}</span></td>
+      <td>${x.malignancy_probability==null?'—':Number(x.malignancy_probability).toFixed(1)+'%'}</td>
+      <td style="font-size:11px;color:#8a96a8;">${safeText(x.created_at)}</td>
+      <td style="white-space:nowrap;">
+        <button class="logout-btn" style="padding:4px 10px;font-size:10px;margin:2px;" onclick="exportPDF(${x.id})">📄</button>
+        <button class="logout-btn" style="padding:4px 10px;font-size:10px;margin:2px;color:var(--coral);border-color:rgba(255,122,107,.4);" onclick="deleteAnalysis(${x.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.deleteAnalysis = async function(id){
+  if(!confirm('Delete this patient analysis record permanently?')) return;
+  try{
+    await authFetch(`/api/admin/analysis/${id}`, {method:'DELETE'});
+    loadAdminDashboard();
+    refreshEvaluationData();
+  }catch(err){ alert('Failed to delete: ' + err.message); }
+};
+window.clearAllData = async function() {
+  if(!confirm("⚠️ This will permanently delete ALL patient analyses and feedback data. Are you absolutely sure?")) return;
+  if(!confirm("⚠️ Final warning: Are you sure you want to wipe everything?")) return;
+  
+  try {
+    const res = await authFetch('/api/admin/clear-all-data', {method: 'DELETE'});
+    alert(res.message);
+    loadAdminDashboard(); // Refresh stats
+    loadFeedbackStats();  // Refresh feedback log
+    refreshEvaluationData(); // Refresh counts
+  } catch(err) { alert('Failed to clear data: ' + err.message); }
+};
+
+window.deleteFeedback = async function(id) {
+  if(!confirm('Delete this feedback record?')) return;
+  try {
+    await authFetch(`/api/admin/feedback/${id}`, {method: 'DELETE'});
+    loadFeedbackStats(); // Reload the table
+  } catch(err) { alert('Failed to delete: ' + err.message); }
+};
+
+checkSession();
+
+// ============================================================================
+// EXPORT FUNCTIONS
+// ============================================================================
+
+window.exportPDF = async function(analysisId) {
+  if (!analysisId || analysisId < 1) {
+    alert('Invalid Analysis ID.');
+    return;
+  }
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('Admin access required.');
+    return;
+  }
+  try {
+    window.open(`${AUTH_BASE}/api/admin/export/pdf/${analysisId}`, '_blank');
+  } catch (err) {
+    alert('Failed to export PDF: ' + err.message);
+  }
+};
+
+window.exportPDFWithSelector = async function() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('Admin access required.');
+    return;
+  }
+  try {
+    const data = await authFetch('/api/admin/analyses/list');
+    const analyses = data.analyses || [];
+    if (!analyses || analyses.length === 0) {
+      alert('No analyses available to export.');
+      return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'pdfSelectorModal';
+    modal.style.cssText = `
+      position: fixed; inset: 0; z-index: 10001;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    `;
+    
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: #121926; border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px; padding: 32px; max-width: 650px; width: 90%;
+      max-height: 80vh; overflow-y: auto;
+    `;
+    
+    let optionsHtml = analyses.map(a => `
+      <div onclick="exportPDF(${a.id})" style="
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 18px; 
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+        background: rgba(255,255,255,0.02);
+      "
+      onmouseover="this.style.background='rgba(76,201,192,0.1)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <div>
+          <strong style="color: #4cc9c0;">#${a.id}</strong>
+          <span style="color: #e9eef4; margin-left: 12px;">${safeText(a.patient_name || 'Unknown')}</span>
+        </div>
+        <div>
+          <span style="color: ${a.status === 'completed' ? '#4caf50' : '#ff7a6b'}; font-size: 12px;">
+            ${safeText(a.status)}
+          </span>
+          <span style="color: #8a96a8; font-size: 12px; margin-left: 12px;">
+            ${safeText(a.disease || '—')}
+          </span>
+        </div>
+      </div>
+    `).join('');
+    
+    card.innerHTML = `
+      <h2 style="font-family: 'Space Grotesk', sans-serif; margin-bottom: 8px; color: #e9eef4;">
+        📄 Export Single Analysis PDF
+      </h2>
+      <p style="color: #8a96a8; margin-bottom: 20px; font-size: 14px;">
+        Select an analysis to export as a PDF report. Use "Patient PDF" to export all analyses for a patient.
+      </p>
+      <div style="margin-bottom: 16px;">
+        ${optionsHtml}
+      </div>
+      <button onclick="closePDFSelector()" style="
+        width: 100%; padding: 12px; 
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px; 
+        background: transparent;
+        color: #8a96a8;
+        cursor: pointer;
+        font-size: 14px;
+      ">Cancel</button>
+    `;
+    
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+  } catch (err) {
+    alert('Failed to load analyses: ' + err.message);
+  }
+};
+
+window.closePDFSelector = function() {
+  const modal = document.getElementById('pdfSelectorModal');
+  if (modal) modal.remove();
+};
+
+window.exportCSV = async function() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('Admin access required.');
+    return;
+  }
+  try {
+    window.location.href = `${AUTH_BASE}/api/admin/export/csv`;
+  } catch (err) {
+    alert('Failed to export CSV: ' + err.message);
+  }
+};
+
+async function getPatientsList() {
+  if (!currentUser || currentUser.role !== 'admin') return [];
+  try {
+    const data = await authFetch('/api/admin/patients/list');
+    return data.patients || [];
+  } catch (err) {
+    console.error('Failed to fetch patients:', err);
+    return [];
+  }
+}
+
+window.showPatientExportSelector = async function() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('Admin access required.');
+    return;
+  }
+  
+  try {
+    const patients = await getPatientsList();
+    
+    if (!patients || patients.length === 0) {
+      alert('No patients found.');
+      return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'patientSelectorModal';
+    modal.style.cssText = `
+      position: fixed; inset: 0; z-index: 10001;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    `;
+    
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: #121926; border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px; padding: 32px; max-width: 700px; width: 90%;
+      max-height: 80vh; overflow-y: auto;
+    `;
+    
+    let optionsHtml = patients.map(p => `
+      <div onclick="exportPatientPDF('${encodeURIComponent(p.email)}')" style="
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 18px; 
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+        background: rgba(255,255,255,0.02);
+      "
+      onmouseover="this.style.background='rgba(76,201,192,0.1)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <div>
+          <strong style="color: #4cc9c0;">#${p.id}</strong>
+          <span style="color: #e9eef4; margin-left: 12px;">${safeText(p.name)}</span>
+        </div>
+        <div>
+          <span style="color: #8a96a8; font-size: 12px;">${safeText(p.email)}</span>
+          <span style="color: #4cc9c0; font-size: 12px; margin-left: 12px;">
+            ${p.analysis_count} analyses
+          </span>
+          <span style="color: #4caf50; font-size: 12px; margin-left: 8px;">
+            (${p.completed_count || 0} completed)
+          </span>
+        </div>
+      </div>
+    `).join('');
+    
+    card.innerHTML = `
+      <h2 style="font-family: 'Space Grotesk', sans-serif; margin-bottom: 8px; color: #e9eef4;">
+        📄 Export Patient PDF - Full History
+      </h2>
+      <p style="color: #8a96a8; margin-bottom: 20px; font-size: 14px;">
+        Select a patient to export a complete PDF report containing <strong>ALL their analyses</strong>.
+      </p>
+      <div style="margin-bottom: 16px;">
+        ${optionsHtml}
+      </div>
+      <button onclick="closePatientSelector()" style="
+        width: 100%; padding: 12px; 
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px; 
+        background: transparent;
+        color: #8a96a8;
+        cursor: pointer;
+        font-size: 14px;
+      ">Cancel</button>
+    `;
+    
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+    
+  } catch (err) {
+    alert('Failed to load patients: ' + err.message);
+  }
+};
+
+window.closePatientSelector = function() {
+  const modal = document.getElementById('patientSelectorModal');
+  if (modal) modal.remove();
+};
+
+window.exportPatientPDF = async function(patientEmail) {
+  if (!patientEmail) {
+    alert('Invalid patient identifier.');
+    return;
+  }
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('Admin access required.');
+    return;
+  }
+  try {
+    closePatientSelector();
+    window.open(`${AUTH_BASE}/api/admin/export/patient-pdf/${patientEmail}`, '_blank');
+  } catch (err) {
+    alert('Failed to export PDF: ' + err.message);
+  }
+};
+
+// ============================================================================
+// ANALYTICS (FIXED: SAFE DESTROY)
+// ============================================================================
+
+
+
+// ============================================================================
+// FEEDBACK
+// ============================================================================
+
+
+async function loadFeedbackStats() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  try {
+    const stats = await authFetch('/api/admin/feedback/stats');
+    const adminStats = document.getElementById('adminStats');
+    if (adminStats) {
+      const feedbackCard = document.createElement('div');
+      feedbackCard.className = 'metric-card';
+      feedbackCard.innerHTML = `
+        <span class="metric-label">Feedback Accuracy</span>
+        <div class="metric-value">${stats.accuracy_rate}%</div>
+        <div class="metric-note">${stats.total} total · ${stats.correct} correct</div>
+      `;
+      adminStats.appendChild(feedbackCard);
+    }
+
+    const listData = await authFetch('/api/admin/feedback/list');
+    const feedbackRows = document.getElementById('feedbackRows');
+    if (!listData.feedback || listData.feedback.length === 0) {
+      feedbackRows.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#8a96a8;">No feedback submitted yet.</td></tr>';
+    } else {
+      feedbackRows.innerHTML = listData.feedback.map(f => `
+        <tr>
+          <td><strong>${safeText(f.user_name)}</strong><br><small style="color:#8a96a8;">${safeText(f.user_email)}</small></td>
+          <td>${safeText(f.predicted_disease)}</td>
+          <td><span class="status-chip ${f.correct ? 'ok' : ''}" style="${f.correct ? '' : 'background:rgba(255,122,107,0.16);color:#ff7a6b;'}">${f.correct ? '✅ Correct' : '❌ Incorrect'}</span></td>
+          <td>${safeText(f.corrected_disease)}</td>
+          <td style="max-width:250px;">${safeText(f.comments)}</td>
+          <td style="font-size:11px;">${safeText(f.feedback_date)}</td>
+          <td>
+            <button class="logout-btn" style="padding:4px 10px;font-size:10px;color:var(--coral);border-color:rgba(255,122,107,.4);" onclick="deleteFeedback(${f.feedback_id})">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+  } catch (err) { 
+    console.error('Failed to load feedback stats:', err); 
+  }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function safeText(value) {
+  if (Number.isNaN(value)) return '—';
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function pct(value){ 
+  if(value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return '—'; 
+  return `${(Number(value) * 100).toFixed(0)}%`; 
+}
+
+// ============================================================================
+// SCROLL REVEAL
+// ============================================================================
+
+const revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => { if(entry.isIntersecting){ entry.target.classList.add('in'); revealObserver.unobserve(entry.target); } });
+}, { threshold: 0.15 });
+revealEls.forEach(el => revealObserver.observe(el));
+
+// ============================================================================
+// AMBIENT PARALLAX
+// ============================================================================
+
+const orbs = document.querySelectorAll('.orb');
+window.addEventListener('mousemove', (e) => {
+  const px = e.clientX / window.innerWidth - 0.5;
+  const py = e.clientY / window.innerHeight - 0.5;
+  orbs.forEach((orb, i) => {
+    const depth = (i + 1) * 14;
+    orb.style.transform = `translate3d(${px * depth}px, ${py * depth}px, ${orb.classList.contains('orb-1') ? -120 : orb.classList.contains('orb-2') ? -200 : orb.classList.contains('orb-3') ? -60 : -260}px)`;
+  });
+});
+
+const uploadCard = document.getElementById('uploadCard');
+uploadCard.addEventListener('mousemove', (e) => {
+  const r = uploadCard.getBoundingClientRect();
+  const px = (e.clientX - r.left) / r.width - 0.5;
+  const py = (e.clientY - r.top) / r.height - 0.5;
+  uploadCard.style.transform = `rotateX(${-py * 6}deg) rotateY(${px * 8}deg)`;
+});
+uploadCard.addEventListener('mouseleave', () => { uploadCard.style.transform = ''; });
+
+// ============================================================================
+// DROPZONE / FILE HANDLING
+// ============================================================================
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const previewWrap = document.getElementById('previewWrap');
+const previewImg = document.getElementById('previewImg');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
+dropzone.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', (e) => { const file = e.dataTransfer.files[0]; if(file) handleFile(file); });
+fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if(file) handleFile(file); });
+
+const toneImg = document.getElementById('toneImg');
+const edgeCanvas = document.getElementById('edgeCanvas');
+const heatCanvas = document.getElementById('heatCanvas');
+const imgStack = document.getElementById('imgStack');
+const readoutLeft = document.getElementById('readoutLeft');
+const readoutRight = document.getElementById('readoutRight');
+let lastHotspot = null;
+
+function handleFile(file){
+  if(!file.type.startsWith('image/')){alert('Please choose an image file.');return;}
+  if(file.size>10*1024*1024){alert('Image must be 10 MB or smaller.');return;}
+  uploadedFile = file;
+  updateEnhancement();
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    toneImg.src = e.target.result;
+    previewWrap.style.display = 'block';
+    analyzeBtn.disabled = false;
+    imgStack.classList.remove('state-analyzing','state-done');
+    readoutLeft.textContent = 'layer 1 / 4 — source';
+    readoutRight.textContent = 'ready';
+  };
+  reader.readAsDataURL(file);
+  previewImg.onload = () => { buildAnalysisLayers(previewImg); };
+}
+
+function buildAnalysisLayers(img){
+  const maxDim = 220;
+  const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').drawImage(img, 0, 0, w, h);
+  sobelEdges(src, edgeCanvas);
+  const hotspot = findHotspot(src);
+  lastHotspot = hotspot;
+  drawHeatmap(heatCanvas, w, h, hotspot.xPct, hotspot.yPct);
+}
+
+function sobelEdges(srcCanvas, destCanvas){
+  const w = srcCanvas.width, h = srcCanvas.height;
+  destCanvas.width = w; destCanvas.height = h;
+  const sctx = srcCanvas.getContext('2d');
+  const dctx = destCanvas.getContext('2d');
+  const src = sctx.getImageData(0,0,w,h);
+  const gray = new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){ const r=src.data[i*4], g=src.data[i*4+1], b=src.data[i*4+2]; gray[i] = 0.299*r+0.587*g+0.114*b; }
+  const out = dctx.createImageData(w,h);
+  const gx = [-1,0,1,-2,0,2,-1,0,1];
+  const gy = [-1,-2,-1,0,0,0,1,2,1];
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      let sx=0, sy=0, k=0;
+      for(let j=-1;j<=1;j++){
+        for(let i2=-1;i2<=1;i2++){
+          const v = gray[(y+j)*w + (x+i2)];
+          sx += v*gx[k]; sy += v*gy[k]; k++;
+        }
+      }
+      const mag = Math.min(255, Math.sqrt(sx*sx+sy*sy));
+      const idx = (y*w+x)*4;
+      out.data[idx] = 76; out.data[idx+1] = 201; out.data[idx+2] = 192; out.data[idx+3] = mag;
+    }
+  }
+  dctx.putImageData(out,0,0);
+}
+
+function findHotspot(srcCanvas){
+  const w = srcCanvas.width, h = srcCanvas.height;
+  const ctx = srcCanvas.getContext('2d', { willReadFrequently: true });
+  const data = ctx.getImageData(0,0,w,h).data;
+  let best = -Infinity, bx = w/2, by = h/2;
+  const margin = Math.round(Math.min(w,h) * 0.08);
+  for(let y=margin; y<h-margin; y+=2){
+    for(let x=margin; x<w-margin; x+=2){
+      const idx = (y*w+x)*4;
+      const r=data[idx], g=data[idx+1], b=data[idx+2];
+      const brightness = (r+g+b)/3;
+      const redness = r - (g+b)/2;
+      const score = redness*1.4 + (255-brightness)*0.5;
+      if(score > best){ best = score; bx = x; by = y; }
+    }
+  }
+  return { xPct: bx/w, yPct: by/h, score: Math.max(0, best) };
+}
+
+function drawHeatmap(destCanvas, w, h, xPct, yPct){
+  destCanvas.width = w; destCanvas.height = h;
+  const ctx = destCanvas.getContext('2d');
+  const cx = w * xPct, cy = h * yPct;
+  const r = Math.min(w,h) * 0.24;
+  const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+  grad.addColorStop(0,'rgba(255,122,107,0.9)');
+  grad.addColorStop(0.5,'rgba(255,122,107,0.35)');
+  grad.addColorStop(1,'rgba(255,122,107,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(255,122,107,0.9)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.55,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-9,cy); ctx.lineTo(cx+9,cy); ctx.moveTo(cx,cy-9); ctx.lineTo(cx,cy+9); ctx.stroke();
+}
+
+// ============================================================================
+// ENHANCEMENT CONTROLS
+// ============================================================================
+
+const enhBrightness=document.getElementById('enhBrightness');
+const enhContrast=document.getElementById('enhContrast');
+const enhSaturation=document.getElementById('enhSaturation');
+const liveStatus=document.getElementById('liveStatus');
+function updateEnhancement(){
+  if(!previewImg) return;
+  const f=`brightness(${enhBrightness.value}%) contrast(${enhContrast.value}%) saturate(${enhSaturation.value}%)`;
+  previewImg.style.filter=f; toneImg.style.filter=`grayscale(1) ${f}`;
+  liveStatus.textContent=`Live enhancement · B ${enhBrightness.value}% · C ${enhContrast.value}% · S ${enhSaturation.value}%`;
+}
+[enhBrightness,enhContrast,enhSaturation].forEach(x=>x.addEventListener('input',updateEnhancement));
+
+// ============================================================================
+// ANALYSIS PROGRESS & RESULTS
+// ============================================================================
+
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const resultsSection = document.getElementById('resultsSection');
+const resultsGrid = document.getElementById('resultsGrid');
+const API_BASE = 'http://127.0.0.1:8000';
+let uploadedFile = null;
+
+const stages = ['Splitting into layers…','Isolating grayscale tone…','Mapping edge pattern…','Locating hotspot…','Combining layers…'];
+const readoutByStage = ['layer 1 / 4 — original','layer 2 / 4 — grayscale','layer 3 / 4 — edge map','layer 4 / 4 — heatmap','combining all layers'];
+
+analyzeBtn.addEventListener('click', async () => {
+  if(!uploadedFile) return;
+  if(!currentUser){ authScreen.style.display='flex'; return; }
+  analyzeBtn.disabled = true;
+  progressWrap.style.display = 'block';
+  imgStack.classList.remove('state-done');
+  imgStack.classList.add('state-analyzing');
+  progressLabel.textContent = stages[0];
+  readoutLeft.textContent = readoutByStage[0];
+  readoutRight.textContent = 'separating…';
+
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct = Math.min(96, pct + Math.random() * 14 + 6);
+    const stageIdx = Math.min(stages.length - 2, Math.floor((pct / 100) * (stages.length - 1)));
+    progressLabel.textContent = stages[stageIdx];
+    readoutLeft.textContent = readoutByStage[stageIdx];
+    readoutRight.textContent = Math.round(pct) + '%';
+    progressFill.style.width = pct + '%';
+  }, 380);
+
+  let apiResult = null, apiError = null;
+  try {
+    const formData = new FormData();
+    formData.append('file', uploadedFile);
+    
+    // STRICT CHECK: Only append model_version if user is Admin
+    if (currentUser && currentUser.role === 'admin') {
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect && modelSelect.value) {
+            formData.append('model_version', modelSelect.value);
+        }
+    }
+    
+    const res = await fetch(`${API_BASE}/api/predict`, { method: 'POST', body: formData, credentials: 'include' });
+    if(!res.ok){ const text = await res.text(); throw new Error(`Server responded ${res.status}: ${text.slice(0, 200)}`); }
+    apiResult = await res.json();
+  } catch (err) { apiError = err; console.error('Prediction request failed:', err); }
+
+  clearInterval(interval);
+  progressFill.style.width = '100%';
+  progressLabel.textContent = 'Done';
+  readoutLeft.textContent = 'layers combined';
+  if(lastHotspot){ readoutRight.textContent = `x ${(lastHotspot.xPct*100).toFixed(0)}% · y ${(lastHotspot.yPct*100).toFixed(0)}%`; }
+  imgStack.classList.remove('state-analyzing');
+  imgStack.classList.add('state-done');
+  analyzeBtn.disabled = false;
+
+  if(apiError){ showApiError(`Could not reach the analysis server (${apiError.message || apiError}). Is backend.py running on port 8000?`); }
+  else { 
+    showResults(apiResult); 
+    if (currentUser && currentUser.role === 'admin') {
+      refreshEvaluationData();
+    }
+  }
+});
+
+function showApiError(message){
+  resultsGrid.innerHTML = `<div class="disclaimer-box" style="grid-column: 1 / -1;"><div class="mark3d">!</div><p><strong>Couldn't complete analysis.</strong> ${message}</p></div>`;
+  resultsSection.style.display = 'block';
+  resultsSection.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function showResults(apiResult){
+  if(!apiResult || typeof apiResult !== 'object'){ showApiError('The server sent back an empty or unreadable response.'); return; }
+  if(apiResult.status === 'invalid' || apiResult.status === 'uncertain' || apiResult.status === 'error'){ showApiError(apiResult.message || 'The model could not process this image.'); loadMySubmissions(); return; }
+  if(apiResult.status === 'ok' && !Array.isArray(apiResult.results)){
+    resultsGrid.innerHTML = `<div class="locked-note" style="grid-column:1/-1"><strong>Submission received.</strong><br>${safeText(apiResult.message || 'Your image was submitted successfully. The analysis result is restricted to an authorized administrator.')}</div>`;
+    resultsSection.style.display='block'; resultsSection.scrollIntoView({behavior:'smooth',block:'start'}); loadMySubmissions(); return;
+  }
+  if(apiResult.status !== 'ok' || !Array.isArray(apiResult.results)){ showApiError('The server returned an unexpected response format.'); console.error('Unexpected /api/predict response:', apiResult); return; }
+
+  try {
+    resultsGrid.innerHTML = '';
+    apiResult.results.forEach((r) => {
+      const card = document.createElement('div');
+      card.className = 'result-card' + (r.primary ? ' primary' : '');
+      card.innerHTML = `
+        <div class="result-flip">
+          <div class="result-face front">
+            <div class="result-face-inner">
+              <div class="result-top">
+                <span class="result-name">${r.name}</span>
+                <span class="result-badge ${r.primary ? 'badge-primary' : 'badge-other'}">${r.primary ? 'Top match' : 'Also considered'}</span>
+              </div>
+              <div class="confidence-ring">
+                <div class="conf-num">${r.confidence}<span>%</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width:${r.confidence}%"></div></div>
+              </div>
+              <span class="result-flip-hint">Hover to read more →</span>
+            </div>
+          </div>
+          <div class="result-face back">
+            <div class="result-face-inner">
+              <span class="result-desc-label">Why this match</span>
+              <p class="result-desc">${r.description}</p>
+            </div>
+          </div>
+        </div>`;
+      resultsGrid.appendChild(card);
+    });
+
+    if (apiResult.analysis_id) {
+      const feedbackSection = document.createElement('div');
+      feedbackSection.className = 'disclaimer-box';
+      feedbackSection.style.marginTop = '16px';
+      feedbackSection.innerHTML = `
+        <div class="mark3d">?</div>
+        <div style="flex:1;">
+          <p><strong>Was this prediction helpful?</strong></p>
+          <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+            <button onclick="submitFeedback(${apiResult.analysis_id}, true)" class="btn-primary" style="padding:8px 16px;font-size:12px;">✅ Correct</button>
+            <button onclick="submitFeedback(${apiResult.analysis_id}, false)" class="btn-ghost" style="padding:8px 16px;font-size:12px;">❌ Incorrect</button>
+            <button onclick="showFeedbackForm(${apiResult.analysis_id})" class="btn-ghost" style="padding:8px 16px;font-size:12px;">💬 Detailed Feedback</button>
+          </div>
+          <div id="feedbackForm_${apiResult.analysis_id}" style="display:none;margin-top:12px;">
+            <input id="correctedDisease_${apiResult.analysis_id}" placeholder="What was the correct diagnosis?" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border-2);background:#0b1119;color:var(--text);margin-bottom:8px;">
+            <textarea id="feedbackComments_${apiResult.analysis_id}" placeholder="Additional comments..." style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border-2);background:#0b1119;color:var(--text);min-height:60px;margin-bottom:8px;"></textarea>
+            <button onclick="submitDetailedFeedback(${apiResult.analysis_id})" class="btn-primary" style="padding:8px 16px;font-size:12px;">Submit Feedback</button>
+          </div>
+          <div id="feedbackStatus_${apiResult.analysis_id}" style="margin-top:8px;font-size:12px;color:var(--teal);display:none;">✓ Thank you for your feedback!</div>
+        </div>
+      `;
+      resultsGrid.appendChild(feedbackSection);
+    }
+
+    resultsSection.style.display = 'block';
+    resultsSection.scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch (renderErr) { console.error('Failed to render results:', renderErr, apiResult); showApiError('Got a response from the server but failed to display it. See browser console for details.'); }
+}
+
+// ============================================================================
+// FEEDBACK FUNCTIONS
+// ============================================================================
+
+window.submitFeedback = async function(analysisId, correct) {
+  try {
+    const response = await fetch(`${API_BASE}/api/feedback/${analysisId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+      body: JSON.stringify({ correct })
+    });
+    if (response.ok) {
+      const status = document.getElementById(`feedbackStatus_${analysisId}`);
+      if (status) { status.style.display = 'block'; status.textContent = '✓ Thank you for your feedback!'; }
+    } else {
+      const error = await response.json();
+      alert(`Failed to submit feedback: ${error.detail || 'Unknown error'}`);
+    }
+  } catch (err) { console.error('Feedback error:', err); alert('Failed to submit feedback. Please try again.'); }
+};
+
+window.showFeedbackForm = function(analysisId) {
+  const form = document.getElementById(`feedbackForm_${analysisId}`);
+  if (form) { form.style.display = form.style.display === 'none' ? 'block' : 'none'; }
+};
+
+window.submitDetailedFeedback = async function(analysisId) {
+  const disease = document.getElementById(`correctedDisease_${analysisId}`).value.trim();
+  const comments = document.getElementById(`feedbackComments_${analysisId}`).value.trim();
+  try {
+    const response = await fetch(`${API_BASE}/api/feedback/${analysisId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+      body: JSON.stringify({ correct: false, corrected_disease: disease || undefined, comments: comments || undefined })
+    });
+    if (response.ok) {
+      const status = document.getElementById(`feedbackStatus_${analysisId}`);
+      if (status) { status.style.display = 'block'; status.textContent = '✓ Thank you for the detailed feedback!'; }
+      const form = document.getElementById(`feedbackForm_${analysisId}`);
+      if (form) form.style.display = 'none';
+    } else {
+      const error = await response.json();
+      alert(`Failed to submit feedback: ${error.detail || 'Unknown error'}`);
+    }
+  } catch (err) { console.error('Feedback error:', err); alert('Failed to submit feedback. Please try again.'); }
+};
+
+// ============================================================================
+// STATIC EVALUATION DASHBOARD
+// ============================================================================
+
+const evaluationDashboard = document.getElementById('evaluationDashboard');
+const evalStatusText = document.getElementById('evalStatusText');
+
+const STATIC_EVALUATION = {
+  status: 'ok', n_samples: 4479, dataset: 'HAM10000 evaluation benchmark', model: 'Trained 7-class skin lesion classifier',
+  classification: {
+    accuracy: 0.86, precision_macro: 0.86, recall_macro: 0.86, f1_macro: 0.86,
+    precision_weighted: 0.86, recall_weighted: 0.86, f1_weighted: 0.86,
+    class_names: ['seborrheic keratosis','nevus','squamous cell carcinoma','melanoma','basal cell carcinoma','actinic keratosis','pigmented benign keratosis'],
+    per_class: [
+      {name:'seborrheic keratosis', precision:0.87, recall:0.85, f1:0.86, support:639},
+      {name:'nevus', precision:0.88, recall:0.81, f1:0.84, support:640},
+      {name:'squamous cell carcinoma', precision:0.82, recall:0.90, f1:0.86, support:640},
+      {name:'melanoma', precision:0.81, recall:0.81, f1:0.81, support:640},
+      {name:'basal cell carcinoma', precision:0.87, recall:0.88, f1:0.88, support:640},
+      {name:'actinic keratosis', precision:0.87, recall:0.88, f1:0.87, support:640},
+      {name:'pigmented benign keratosis', precision:0.93, recall:0.93, f1:0.93, support:640}
+    ],
+    confusion_matrix: [
+      [541,12,28,19,15,15,9],
+      [17,516,5,73,10,2,17],
+      [13,1,577,4,19,26,0],
+      [20,45,9,520,15,13,18],
+      [10,4,30,8,566,19,3],
+      [6,6,53,2,20,552,1],
+      [13,4,2,13,7,6,595]
+    ]
+  }
+};
+
+async function refreshEvaluationData() {
+  try {
+    const data = await authFetch('/api/admin/evaluation-data');
+    
+    const disease_counts = data.disease_counts || {};
+    STATIC_EVALUATION.classification.per_class.forEach(cls => {
+      if (disease_counts[cls.name] !== undefined) {
+        cls.support = disease_counts[cls.name];
+      }
+    });
+
+    STATIC_EVALUATION.n_samples = data.total_analyses || 4479;
+
+    renderEvaluationSnapshot(STATIC_EVALUATION);
+    evalStatusText.textContent = `Evaluation snapshot · ${data.total_analyses} images · 7 classes · live`;
+  } catch (err) {
+    console.error('Failed to refresh evaluation data:', err);
+    renderEvaluationSnapshot(STATIC_EVALUATION);
+  }
+}
+
+refreshEvaluationData();
+
+function renderMatrix(matrix, labels){
+  const flat=matrix.flat().map(Number), max=Math.max(1,...flat);
+  let out='<div class="matrix-wrap"><table class="matrix"><tr><th></th>'+labels.map(x=>`<th class="axis">${safeText(x)}</th>`).join('')+'</tr>';
+  matrix.forEach((row,i)=>{
+    out += `<tr><th>${safeText(labels[i] || i)}</th>`;
+    row.forEach((v,j)=>{
+      const alpha=.08+.45*(Number(v)/max);
+      out+=`<td class="${i===j?'diag':''}" style="background:rgba(76,201,192,${alpha.toFixed(3)})">${Number(v).toLocaleString()}</td>`;
+    });
+    out+='</tr>';
+  });
+  return out+'</table></div>';
+}
+
+function renderClassificationReport(c){
+  const rows = c.per_class;
+  const rowHtml = rows.map(x => `
+    <tr><td>${safeText(x.name)}</td><td>${pct(x.precision)}</td><td>${pct(x.recall)}</td><td>${pct(x.f1)}</td><td class="support">${Number(x.support).toLocaleString()}</td></tr>`
+  ).join('');
+  return `
+    <div class="report-wrap">
+      <table class="report-table">
+        <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1-score</th><th>Support</th></tr></thead>
+        <tbody>
+          ${rowHtml}
+          <tr class="summary-row"><td>Accuracy</td><td colspan="3">${pct(c.accuracy)}</td><td>${Number(STATIC_EVALUATION.n_samples).toLocaleString()}</td></tr>
+          <tr class="summary-row"><td>Macro avg</td><td>${pct(c.precision_macro)}</td><td>${pct(c.recall_macro)}</td><td>${pct(c.f1_macro)}</td><td>${Number(STATIC_EVALUATION.n_samples).toLocaleString()}</td></tr>
+          <tr class="summary-row"><td>Weighted avg</td><td>${pct(c.precision_weighted)}</td><td>${pct(c.recall_weighted)}</td><td>${pct(c.f1_weighted)}</td><td>${Number(STATIC_EVALUATION.n_samples).toLocaleString()}</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderEvaluationSnapshot(data){
+  const c=data.classification;
+  const metrics=[['Accuracy',c.accuracy],['Precision',c.precision_macro],['Recall',c.recall_macro],['F1 Score',c.f1_macro],['Evaluated Images',data.n_samples]];
+  const cards=metrics.map(([label,val],i)=>`<div class="metric-card"><span class="metric-label">${label}</span><div class="metric-value">${i===4?Number(val).toLocaleString():pct(val)}</div><div class="metric-note">Fixed benchmark result</div></div>`).join('');
+  const classRows=c.per_class.map(x=>`<div class="class-row"><span class="class-name" title="${safeText(x.name)}">${safeText(x.name)}</span><div class="class-bar"><span style="width:${Math.max(0,Math.min(100,x.f1*100))}%"></span></div><span class="class-score">${pct(x.f1)}</span></div>`).join('');
+  evaluationDashboard.innerHTML=`
+    <div class="metric-grid">${cards}</div>
+    <div class="dashboard-card" style="margin-bottom:22px">
+      <h3>Classification report</h3>
+      <p class="card-sub">The exact class-wise benchmark values shown in the model evaluation report.</p>
+      ${renderClassificationReport(c)}
+    </div>
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <h3>Confusion matrix</h3>
+        <p class="card-sub">Rows = actual · columns = predicted · ${Number(data.n_samples).toLocaleString()} evaluated images</p>
+        ${renderMatrix(c.confusion_matrix,c.class_names)}
+      </div>
+      <div class="dashboard-card">
+        <h3>Class F1 performance</h3>
+        <p class="card-sub">Per-class F1 score from the fixed evaluation report</p>
+        <div class="class-list">${classRows}</div>
+      </div>
+    </div>
+    <div class="dashboard-card" style="margin-top:22px">
+      <h3>Evaluation summary</h3>
+      <p class="card-sub">Static presentation of the trained model's benchmark shown in the evaluation screenshot.</p>
+      <div class="binary-grid">
+        <div class="binary-metric"><span class="metric-label">Final validation accuracy</span><div class="metric-value">86.34%</div></div>
+        <div class="binary-metric"><span class="metric-label">Test images</span><div class="metric-value">${Number(data.n_samples).toLocaleString()}</div></div>
+        <div class="binary-metric"><span class="metric-label">Classes</span><div class="metric-value">7</div></div>
+      </div>
+      <p class="eval-footnote">Source: supplied model evaluation report · Values are fixed for display and are not recalculated by the frontend.</p>
+    </div>`;
+}
+
+renderEvaluationSnapshot(STATIC_EVALUATION);
+evalStatusText.textContent='Evaluation snapshot · 4,479 images · 7 classes · static';
+<!-- ... other JavaScript code ... -->
+
+
+// ============================================================================
+// PUBLIC MODEL EVALUATION DISPLAY (NO LOGIN REQUIRED)
+// ============================================================================
+
+// ============================================================================
+// PUBLIC MODEL EVALUATION DISPLAY (NO LOGIN REQUIRED)
+// ============================================================================
+
+async function loadPublicEvaluation() {
+  try {
+    const res = await fetch('/api/public/evaluation');
+    const data = await res.json();
+
+    // Metrics
+    document.getElementById('publicMetrics').innerHTML = `
+      <div class="metric-card"><span class="metric-label">Accuracy</span><div class="metric-value">${(data.accuracy * 100).toFixed(2)}%</div></div>
+      <div class="metric-card"><span class="metric-label">Precision</span><div class="metric-value">${(data.macro_avg.precision * 100).toFixed(2)}%</div></div>
+      <div class="metric-card"><span class="metric-label">Recall</span><div class="metric-value">${(data.macro_avg.recall * 100).toFixed(2)}%</div></div>
+      <div class="metric-card"><span class="metric-label">F1-Score</span><div class="metric-value">${(data.macro_avg.f1 * 100).toFixed(2)}%</div></div>
+      <div class="metric-card"><span class="metric-label">Images</span><div class="metric-value">${data.total_images.toLocaleString()}</div></div>
+    `;
+
+    // Classification Report Table
+    let reportRows = data.per_class.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${(c.precision * 100).toFixed(2)}%</td>
+        <td>${(c.recall * 100).toFixed(2)}%</td>
+        <td>${(c.f1 * 100).toFixed(2)}%</td>
+        <td>${c.support.toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('publicReportTable').innerHTML = `
+      <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Support</th></tr></thead>
+      <tbody>
+        ${reportRows}
+        <tr class="summary-row"><td>Accuracy</td><td colspan="4">${(data.accuracy * 100).toFixed(2)}% (${data.total_images} images)</td></tr>
+        <tr class="summary-row"><td>Macro Avg</td><td>${(data.macro_avg.precision * 100).toFixed(2)}%</td><td>${(data.macro_avg.recall * 100).toFixed(2)}%</td><td>${(data.macro_avg.f1 * 100).toFixed(2)}%</td><td>${data.total_images}</td></tr>
+      </tbody>
+    `;
+
+    // Confusion Matrix (Heatmap)
+    const labels = data.class_names;
+    const matrix = data.confusion_matrix;
+    const maxVal = Math.max(...matrix.flat());
+
+    let matrixHtml = '';
+    matrix.forEach((row, i) => {
+      matrixHtml += `<div style="display:flex;align-items:center;margin-bottom:5px;">`;
+      matrixHtml += `<div style="width:140px;font-size:11px;color:#8a96a8;text-align:right;padding-right:10px;">${labels[i]}</div>`;
+      row.forEach(val => {
+        const alpha = 0.08 + 0.45 * (val / maxVal); // Fade based on value
+        matrixHtml += `<div style="flex:1;height:45px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:11px;background:rgba(76,201,192,${alpha});margin:0 2px;">${val}</div>`;
+      });
+      matrixHtml += `</div>`;
+    });
+
+    document.getElementById('publicMatrix').innerHTML = matrixHtml;
+
+  } catch (e) {
+    console.error('Failed to load public evaluation:', e);
+  }
+}
+
+// Run this when page loads
+loadPublicEvaluation();
+
+// Run this when page loads
+loadPublicEvaluation();
+</script>
+</body>
+</html>
+</script>
+</body>
+</html>
